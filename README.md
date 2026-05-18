@@ -8,6 +8,11 @@
 - `generate_multi_agent_plan.js`: 生成方案文档的脚本
 - `specs/001-enterprise-agent-platform/spec.md`: 从方案文档提取的 Spec Kit 需求规格
 - `specs/001-enterprise-agent-platform/checklists/requirements.md`: 需求规格质量检查清单
+- `specs/001-enterprise-agent-platform/plan.md`: 技术实施计划
+- `specs/001-enterprise-agent-platform/research.md`: 技术决策研究记录
+- `specs/001-enterprise-agent-platform/data-model.md`: 领域数据模型
+- `specs/001-enterprise-agent-platform/contracts/openapi.yaml`: 一期 REST API 契约
+- `specs/001-enterprise-agent-platform/quickstart.md`: 计划产物校验与交接说明
 
 ## 需求主线
 
@@ -24,5 +29,5 @@
 按 Speckit 日常流程继续推进：
 
 ```text
-speckit-clarify -> speckit-plan -> speckit-tasks -> speckit-analyze -> speckit-implement
+speckit-tasks -> speckit-analyze -> speckit-implement
 ```

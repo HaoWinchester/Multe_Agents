@@ -1,0 +1,776 @@
+openapi: 3.0.3
+info:
+  title: Enterprise Multi-Agent Digital Employee Platform API
+  version: 0.1.0
+  description: Phase 1 REST contract for the single-enterprise pilot platform.
+servers:
+  - url: https://api.example.com
+    description: Placeholder production endpoint
+  - url: http://localhost:3000
+    description: Local development endpoint
+tags:
+  - name: DigitalEmployees
+  - name: Tasks
+  - name: Reviews
+  - name: Knowledge
+  - name: Audit
+  - name: Operations
+  - name: ToolGateway
+paths:
+  /digital-employees:
+    get:
+      tags: [DigitalEmployees]
+      summary: List digital employees visible to the current user
+      parameters:
+        - $ref: '#/components/parameters/DepartmentId'
+        - $ref: '#/components/parameters/ProjectId'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, in_evaluation, pilot, active, suspended, retired]
+      responses:
+        '200':
+          description: Digital employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DigitalEmployee'
+    post:
+      tags: [DigitalEmployees]
+      summary: Create a digital employee role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigitalEmployeeCreate'
+      responses:
+        '201':
+          description: Created digital employee
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigitalEmployee'
+  /digital-employees/{digitalEmployeeId}:
+    get:
+      tags: [DigitalEmployees]
+      summary: Get digital employee details
+      parameters:
+        - $ref: '#/components/parameters/DigitalEmployeeId'
+      responses:
+        '200':
+          description: Digital employee
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigitalEmployee'
+    patch:
+      tags: [DigitalEmployees]
+      summary: Update digital employee configuration
+      parameters:
+        - $ref: '#/components/parameters/DigitalEmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigitalEmployeeUpdate'
+      responses:
+        '200':
+          description: Updated digital employee
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigitalEmployee'
+  /process-templates:
+    get:
+      tags: [Tasks]
+      summary: List reusable process templates
+      parameters:
+        - name: scenarioType
+          in: query
+          schema:
+            type: string
+            enum: [procurement, knowledge_retrieval, project_weekly_report, generic]
+      responses:
+        '200':
+          description: Process templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProcessTemplate'
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks in the caller access scope
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - $ref: '#/components/parameters/DepartmentId'
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Task list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskSummary'
+    post:
+      tags: [Tasks]
+      summary: Submit a new digital employee task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /tasks/{taskId}:
+    get:
+      tags: [Tasks]
+      summary: Get task details and current board state
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /tasks/{taskId}/steps:
+    get:
+      tags: [Tasks]
+      summary: List task steps
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task steps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskStep'
+  /tasks/{taskId}/outputs:
+    get:
+      tags: [Tasks]
+      summary: List task output artifacts
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Output artifacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutputArtifact'
+  /tasks/{taskId}/exports:
+    post:
+      tags: [Tasks]
+      summary: Generate an export package for reviewed outputs
+      description: Export only; does not write back to any business system.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [artifactIds, exportFormat]
+              properties:
+                artifactIds:
+                  type: array
+                  items:
+                    type: string
+                exportFormat:
+                  type: string
+                  enum: [docx, pdf, xlsx, zip]
+      responses:
+        '202':
+          description: Export request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportJob'
+  /tasks/{taskId}/notifications:
+    post:
+      tags: [ToolGateway]
+      summary: Send a message or todo notification for a task
+      description: Notification/todo push only; does not write business fields back.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+      responses:
+        '202':
+          description: Notification accepted
+  /reviews:
+    get:
+      tags: [Reviews]
+      summary: List review work items assigned to the caller
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed]
+      responses:
+        '200':
+          description: Review work items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewWorkItem'
+  /tasks/{taskId}/reviews:
+    post:
+      tags: [Reviews]
+      summary: Submit a human review decision
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewSubmit'
+      responses:
+        '201':
+          description: Review record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewRecord'
+  /knowledge-sources:
+    get:
+      tags: [Knowledge]
+      summary: List authorized knowledge sources
+      parameters:
+        - name: sourceType
+          in: query
+          schema:
+            type: string
+            enum: [policy, template, historical_case, field_dictionary, business_document]
+      responses:
+        '200':
+          description: Knowledge sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KnowledgeSource'
+  /tasks/{taskId}/citations:
+    get:
+      tags: [Knowledge]
+      summary: List citations attached to task outputs
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Citations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Citation'
+  /audit-records:
+    get:
+      tags: [Audit]
+      summary: Search audit records in caller scope
+      parameters:
+        - name: taskId
+          in: query
+          schema:
+            type: string
+        - name: actorId
+          in: query
+          schema:
+            type: string
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditRecord'
+  /operations/metrics:
+    get:
+      tags: [Operations]
+      summary: Query operational metrics
+      parameters:
+        - name: metricType
+          in: query
+          schema:
+            type: string
+            enum: [task_volume, success_rate, adoption_rate, average_processing_time, modification_rate, risk_hit_rate, saved_effort, user_feedback]
+        - name: dimensionType
+          in: query
+          schema:
+            type: string
+            enum: [task, digital_employee, scenario, department, project]
+        - name: periodStart
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: periodEnd
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Operational metrics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OperationMetric'
+components:
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+    DigitalEmployeeId:
+      name: digitalEmployeeId
+      in: path
+      required: true
+      schema:
+        type: string
+    DepartmentId:
+      name: departmentId
+      in: query
+      schema:
+        type: string
+    ProjectId:
+      name: projectId
+      in: query
+      schema:
+        type: string
+  responses:
+    Forbidden:
+      description: Access denied by role, department/project, or task scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    DigitalEmployee:
+      type: object
+      required: [id, name, status, responsibilities, prohibitedActions]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        responsibilities:
+          type: array
+          items:
+            type: string
+        prohibitedActions:
+          type: array
+          items:
+            type: string
+        inputRequirements:
+          type: array
+          items:
+            type: string
+        outputTypes:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, in_evaluation, pilot, active, suspended, retired]
+        accessScope:
+          $ref: '#/components/schemas/AccessScope'
+    DigitalEmployeeCreate:
+      type: object
+      required: [name, responsibilities, prohibitedActions, inputRequirements, outputTypes]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        responsibilities:
+          type: array
+          items:
+            type: string
+        prohibitedActions:
+          type: array
+          items:
+            type: string
+        inputRequirements:
+          type: array
+          items:
+            type: string
+        outputTypes:
+          type: array
+          items:
+            type: string
+    DigitalEmployeeUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+        responsibilities:
+          type: array
+          items:
+            type: string
+        prohibitedActions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, in_evaluation, pilot, active, suspended, retired]
+    AccessScope:
+      type: object
+      required: [roles, taskScope]
+      properties:
+        roles:
+          type: array
+          items:
+            type: string
+        departmentIds:
+          type: array
+          items:
+            type: string
+        projectIds:
+          type: array
+          items:
+            type: string
+        taskScope:
+          type: string
+          enum: [own_tasks, department_project_tasks, assigned_review_tasks, audit_scope]
+    ProcessTemplate:
+      type: object
+      required: [id, name, scenarioType, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        scenarioType:
+          type: string
+          enum: [procurement, knowledge_retrieval, project_weekly_report, generic]
+        status:
+          type: string
+          enum: [draft, pilot, active, retired]
+    TaskCreate:
+      type: object
+      required: [processTemplateId, businessType, naturalLanguageRequest, expectedOutputs, departmentId]
+      properties:
+        processTemplateId:
+          type: string
+        businessType:
+          type: string
+        naturalLanguageRequest:
+          type: string
+        expectedOutputs:
+          type: array
+          items:
+            type: string
+        confidentialityLevel:
+          type: string
+          enum: [normal, internal, confidential]
+        departmentId:
+          type: string
+        projectId:
+          type: string
+        attachmentIds:
+          type: array
+          items:
+            type: string
+    TaskSummary:
+      type: object
+      required: [id, status, businessType, currentNode, riskCount]
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        businessType:
+          type: string
+        currentNode:
+          type: string
+        riskCount:
+          type: integer
+        estimatedCompletionTime:
+          type: string
+          format: date-time
+    Task:
+      allOf:
+        - $ref: '#/components/schemas/TaskSummary'
+        - type: object
+          properties:
+            submittedBy:
+              type: string
+            naturalLanguageRequest:
+              type: string
+            participatingDigitalEmployees:
+              type: array
+              items:
+                $ref: '#/components/schemas/DigitalEmployee'
+            steps:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskStep'
+    TaskStatus:
+      type: string
+      enum: [draft, submitted, collecting_inputs, running, waiting_for_review, changes_requested, approved, archived, cancelled, failed]
+    TaskStep:
+      type: object
+      required: [id, stepType, status]
+      properties:
+        id:
+          type: string
+        stepType:
+          type: string
+          enum: [input_collection, knowledge_retrieval, agent_generation, rule_check, human_review, export, archive, metrics_update]
+        assignedDigitalEmployeeId:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, blocked, completed, failed, skipped]
+        summary:
+          type: string
+        errorMessage:
+          type: string
+    OutputArtifact:
+      type: object
+      required: [id, taskId, artifactType, status, retentionUntil]
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        artifactType:
+          type: string
+          enum: [requirement_form, procurement_list, tender_draft, risk_list, cited_answer, project_weekly_report, todo_tracking_sheet, audit_ledger, generic_document]
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, pending_review, final, archived, rejected]
+        storageUri:
+          type: string
+        retentionUntil:
+          type: string
+          format: date
+    ReviewWorkItem:
+      type: object
+      required: [taskId, outputArtifactId, title]
+      properties:
+        taskId:
+          type: string
+        outputArtifactId:
+          type: string
+        title:
+          type: string
+        riskCount:
+          type: integer
+        diffSummary:
+          type: string
+    ReviewSubmit:
+      type: object
+      required: [outputArtifactId, decision]
+      properties:
+        outputArtifactId:
+          type: string
+        decision:
+          type: string
+          enum: [approve, reject, request_changes]
+        comments:
+          type: string
+        editedArtifactId:
+          type: string
+    ReviewRecord:
+      type: object
+      required: [id, taskId, outputArtifactId, reviewerId, decision, createdAt]
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        outputArtifactId:
+          type: string
+        reviewerId:
+          type: string
+        decision:
+          type: string
+          enum: [approve, reject, request_changes]
+        comments:
+          type: string
+        diffSummary:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    KnowledgeSource:
+      type: object
+      required: [id, name, sourceType, version, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sourceType:
+          type: string
+          enum: [policy, template, historical_case, field_dictionary, business_document]
+        version:
+          type: string
+        applicabilityScope:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+    Citation:
+      type: object
+      required: [id, knowledgeSourceId, sourceTitle, sourceVersion, retrievedAt]
+      properties:
+        id:
+          type: string
+        knowledgeSourceId:
+          type: string
+        sourceTitle:
+          type: string
+        sourceVersion:
+          type: string
+        locator:
+          type: string
+        applicabilityNote:
+          type: string
+        retrievedAt:
+          type: string
+          format: date-time
+    AuditRecord:
+      type: object
+      required: [id, taskId, actorType, eventType, timestamp, retentionUntil]
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        actorType:
+          type: string
+          enum: [user, digital_employee, system]
+        actorId:
+          type: string
+        eventType:
+          type: string
+        eventSummary:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        retentionUntil:
+          type: string
+          format: date
+    OperationMetric:
+      type: object
+      required: [metricType, periodStart, periodEnd, value]
+      properties:
+        metricType:
+          type: string
+        dimensionType:
+          type: string
+        dimensionId:
+          type: string
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        value:
+          type: number
+    ExportJob:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [accepted, running, completed, failed]
+    NotificationRequest:
+      type: object
+      required: [channel, recipientIds, message]
+      properties:
+        channel:
+          type: string
+          enum: [message, todo]
+        recipientIds:
+          type: array
+          items:
+            type: string
+        message:
+          type: string
+        artifactIds:
+          type: array
+          items:
+            type: string
