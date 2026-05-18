@@ -13,6 +13,7 @@
 - `specs/001-enterprise-agent-platform/data-model.md`: 领域数据模型
 - `specs/001-enterprise-agent-platform/contracts/openapi.yaml`: 一期 REST API 契约
 - `specs/001-enterprise-agent-platform/quickstart.md`: 计划产物校验与交接说明
+- `specs/001-enterprise-agent-platform/tasks.md`: 细粒度、按用户故事组织的实现任务清单
 
 ## 需求主线
 
@@ -29,5 +30,5 @@
 按 Speckit 日常流程继续推进：
 
 ```text
-speckit-tasks -> speckit-analyze -> speckit-implement
+speckit-analyze -> speckit-implement
 ```
